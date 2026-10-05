@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Proyecto Prisma IA — Simulador de Junta</title>
+<style>
+  :root{
+    --navy:#0A1F44;
+    --navy2:#102B5D;
+    --gold:#C9A227;
+    --gold2:#E1C45A;
+    --ink:#152033;
+    --muted:#667085;
+    --bg:#F5F7FB;
+    --card:#FFFFFF;
+    --line:#D9E0EA;
+    --ok:#176B4C;
+    --warn:#9A6700;
+    --bad:#9B1C1C;
+    --shadow:0 18px 45px rgba(10,31,68,.12);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(201,162,39,.13), transparent 30%),
+      linear-gradient(180deg,#EDF2F9 0%,#F8FAFC 45%,#EFF3F8 100%);
+    min-height:100vh;
+  }
+  .shell{max-width:1180px;margin:0 auto;padding:24px}
+  header{
+    display:flex;justify-content:space-between;gap:18px;align-items:center;
+    background:linear-gradient(135deg,var(--navy),#07152E);
+    color:white;padding:22px 24px;border-radius:22px;box-shadow:var(--shadow);
+  }
+  .brand h1{margin:0;font-size:clamp(24px,4vw,40px);letter-spacing:.2px}
+  .brand p{margin:6px 0 0;color:#D9E5F7;font-size:15px}
+  .scoreBox{
+    min-width:160px;text-align:right;border-left:1px solid rgba(255,255,255,.18);padding-left:18px
+  }
+  .scoreBox small{display:block;color:#D9E5F7;text-transform:uppercase;letter-spacing:1.4px}
+  .scoreBox strong{font-size:34px;color:var(--gold2)}
+  .progress{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 22px
+  }
+  .step{
+    background:rgba(255,255,255,.82);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+    backdrop-filter:blur(6px);position:relative;overflow:hidden
+  }
+  .step.active{border-color:var(--gold);box-shadow:0 8px 24px rgba(201,162,39,.15)}
+  .step.locked{opacity:.48}
+  .step .kicker{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted)}
+  .step b{display:block;margin-top:4px;color:var(--navy)}
+  .step .bar{height:4px;background:#E8EDF4;border-radius:999px;margin-top:10px;overflow:hidden}
+  .step .bar span{display:block;height:100%;width:0;background:var(--gold)}
+  .step.done .bar span{width:100%}
+  main{
+    background:rgba(255,255,255,.92);border:1px solid #E3E8EF;border-radius:24px;box-shadow:var(--shadow);overflow:hidden
+  }
+  .hero{
+    padding:34px clamp(22px,4vw,46px);
+    background:
+      linear-gradient(120deg,rgba(10,31,68,.97),rgba(16,43,93,.93)),
+      linear-gradient(90deg,#0A1F44,#102B5D);
+    color:white;position:relative
+  }
+  .hero:after{
+    content:"";position:absolute;right:-80px;top:-95px;width:260px;height:260px;border:1px solid rgba(201,162,39,.28);border-radius:50%;
+    box-shadow:0 0 0 35px rgba(201,162,39,.05),0 0 0 70px rgba(201,162,39,.03)
+  }
+  .hero .eyebrow{color:var(--gold2);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;font-size:12px}
+  .hero h2{font-size:clamp(28px,5vw,52px);max-width:760px;margin:10px 0 12px;line-height:1.02}
+  .hero p{max-width:760px;margin:0;color:#E4EBF7;font-size:17px;line-height:1.55}
+  .content{padding:28px clamp(20px,4vw,44px) 36px}
+  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px}
+  .panel{
+    border:1px solid var(--line);border-radius:18px;padding:20px;background:#FFF
+  }
+  .panel h3{margin:0 0 12px;color:var(--navy);font-size:20px}
+  .panel p{line-height:1.5}
+  .brief{
+    background:#F6F8FC;border-left:4px solid var(--gold);padding:14px 16px;border-radius:10px;margin:14px 0 18px
+  }
+  .brief strong{color:var(--navy)}
+  .timer{
+    display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:white;font-weight:700;color:var(--navy)
+  }
+  .timer.hot{border-color:#E6B8B8;color:var(--bad);background:#FFF7F7}
+  .docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+  button{
+    font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-weight:700;transition:.18s ease
+  }
+  button:disabled{cursor:not-allowed;opacity:.45}
+  .doc{
+    text-align:left;background:#F9FAFC;border:1px solid var(--line);color:var(--ink);min-height:86px
+  }
+  .doc:hover:not(:disabled){transform:translateY(-1px);border-color:#B9C4D2;background:#FFF}
+  .doc.opened{border-color:var(--gold);background:#FFF9E8}
+  .doc span{display:block;font-size:12px;color:var(--muted);margin-top:6px;font-weight:400}
+  .choiceRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .primary{background:var(--gold);color:#111}
+  .primary:hover{background:#D6B33B}
+  .secondary{background:var(--navy);color:white}
+  .ghost{background:white;border:1px solid var(--line);color:var(--navy)}
+  .danger{background:#FDECEC;color:var(--bad);border:1px solid #F3C8C8}
+  .ok{background:#EAF7F1;color:var(--ok);border:1px solid #BCE2D1}
+  .note{font-size:13px;color:var(--muted);margin-top:10px}
+  .evidence{
+    display:grid;gap:10px;margin-top:14px
+  }
+  .evi{
+    display:flex;justify-content:space-between;gap:12px;align-items:center;
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#FBFCFE
+  }
+  .evi b{color:var(--navy)}
+  .tag{font-size:11px;font-weight:700;padding:5px 8px;border-radius:999px;background:#EEF2F7;color:#4C596C;white-space:nowrap}
+  .tag.bad{background:#FDECEC;color:var(--bad)}
+  .tag.warn{background:#FFF5D6;color:var(--warn)}
+  .tag.good{background:#EAF7F1;color:var(--ok)}
+  .sequence{display:grid;gap:10px;margin-top:16px}
+  .seq{
+    width:100%;text-align:left;background:#F8FAFD;border:1px solid var(--line);color:var(--ink)
+  }
+  .seq.selected{background:#FFF7D9;border-color:var(--gold)}
+  .result{
+    border-radius:16px;padding:18px;margin-top:18px;border:1px solid var(--line)
+  }
+  .result.good{background:#F0FAF5;border-color:#BCE2D1}
+  .result.warn{background:#FFF9E8;border-color:#E7D598}
+  .result.bad{background:#FFF2F2;border-color:#F0C5C5}
+  .result h4{margin:0 0 8px;color:var(--navy)}
+  .result p{margin:6px 0;line-height:1.5}
+  .hidden{display:none!important}
+  .meter{height:12px;background:#E8EDF4;border-radius:999px;overflow:hidden;margin-top:10px}
+  .meter span{height:100%;display:block;width:0;background:linear-gradient(90deg,var(--navy),var(--gold))}
+  .bigScore{font-size:54px;font-weight:800;color:var(--navy);letter-spacing:-2px}
+  .debrief{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px
+  }
+  .lesson{border:1px solid var(--line);border-radius:14px;padding:16px;background:#FCFDFE}
+  .lesson small{color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  .lesson b{display:block;color:var(--navy);margin:7px 0 5px}
+  .footer{
+    text-align:center;color:#667085;font-size:13px;padding:20px 0 8px
+  }
+  .modalBack{
+    position:fixed;inset:0;background:rgba(4,12,28,.67);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20
+  }
+  .modal{
+    max-width:650px;width:100%;background:white;border-radius:20px;padding:24px;box-shadow:0 30px 80px rgba(0,0,0,.3)
+  }
+  .modal h3{color:var(--navy);margin-top:0}
+  .modal p{line-height:1.55}
+  @media(max-width:780px){
+    .shell{padding:12px}
+    header{align-items:flex-start;flex-direction:column}
+    .scoreBox{border-left:0;padding-left:0;text-align:left}
+    .progress{grid-template-columns:1fr}
+    .grid,.debrief{grid-template-columns:1fr}
+    .docs{grid-template-columns:1fr}
+    .hero{padding:28px 22px}
+    .content{padding:22px 18px 30px}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <h1>Proyecto Prisma IA</h1>
+      <p>Simulador ejecutivo de decisiones para junta directiva</p>
+    </div>
+    <div class="scoreBox">
+      <small>Puntuación total</small>
+      <strong id="scoreTotal">0</strong><span>/300</span>
+    </div>
+  </header>
+
+  <section class="progress">
+    <div class="step active" id="step1"><div class="kicker">Misión 1</div><b>La propuesta</b><div class="bar"><span></span></div></div>
+    <div class="step locked" id="step2"><div class="kicker">Misión 2</div><b>La alerta</b><div class="bar"><span></span></div></div>
+    <div class="step locked" id="step3"><div class="kicker">Misión 3</div><b>El incidente</b><div class="bar"><span></span></div></div>
+  </section>
+
+  <main>
+    <section id="mission1">
+      <div class="hero">
+        <div class="eyebrow">Misión 1 · La propuesta</div>
+        <h2>La junta debe decidir hoy.</h2>
+        <p>Un proveedor propone una herramienta de IA por USD 180.000. Promete reducir 30% el tiempo de revisión. La evidencia es incompleta y solo tienes recursos para revisar tres documentos antes de votar.</p>
+      </div>
+      <div class="content">
+        <div class="grid">
+          <div class="panel">
+            <h3>Selecciona 3 documentos para investigar</h3>
+            <div class="brief"><strong>Regla del juego:</strong> no puedes revisar todo. Debes priorizar evidencia que cambie la calidad de la decisión.</div>
+            <div class="docs" id="docs">
+              <button class="doc" data-id="roi">Caso económico<span>Supuestos del ahorro y retorno esperado.</span></button>
+              <button class="doc" data-id="data">Arquitectura de datos<span>Dónde se almacenan y procesan los datos.</span></button>
+              <button class="doc" data-id="controls">Supervisión humana<span>Quién revisa alertas, errores y excepciones.</span></button>
+              <button class="doc" data-id="contract">Contrato comercial<span>Precio, renovación y alcance.</span></button>
+              <button class="doc" data-id="demo">Video demostrativo<span>Demostración preparada por el proveedor.</span></button>
+              <button class="doc" data-id="pilot">Plan de piloto<span>Cómo probar valor, riesgos y métricas antes de escalar.</span></button>
+            </div>
+            <div class="choiceRow">
+              <button class="secondary" id="voteApprove" disabled>Aprobar compra</button>
+              <button class="primary" id="votePilot" disabled>Aprobar piloto condicionado</button>
+              <button class="ghost" id="voteReject" disabled>Rechazar por ahora</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Lo que sabes</h3>
+            <div class="evidence">
+              <div class="evi"><div><b>Beneficio prometido</b><div class="note">30% menos tiempo de revisión.</div></div><span class="tag warn">Sin evidencia</span></div>
+              <div class="evi"><div><b>Datos</b><div class="note">Parte del procesamiento ocurre fuera de Panamá.</div></div><span class="tag warn">Requiere análisis</span></div>
+              <div class="evi"><div><b>Alertas</b><div class="note">No hay responsable humano identificado.</div></div><span class="tag bad">Vacío de control</span></div>
+              <div class="evi"><div><b>Precio</b><div class="note">USD 180.000.</div></div><span class="tag">Confirmado</span></div>
+            </div>
+            <div id="m1Result"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="mission2" class="hidden">
+      <div class="hero">
+        <div class="eyebrow">Misión 2 · La alerta</div>
+        <h2>La IA marca a un cliente como “alto riesgo”.</h2>
+        <p>La herramienta ya está en piloto. El sistema pide actuar de inmediato, pero la calidad de la alerta debe ser evaluada antes de convertir una recomendación algorítmica en una decisión humana.</p>
+      </div>
+      <div class="content">
+        <div class="grid">
+          <div class="panel">
+            <h3>Inspecciona la evidencia</h3>
+            <p class="note">Abre al menos tres elementos antes de decidir. Cada revisión revela una pieza de contexto.</p>
+            <div class="evidence" id="evidenceButtons">
+              <button class="doc" data-evi="source">Fuente del dato<span>Origen de la información que disparó la alerta.</span></button>
+              <button class="doc" data-evi="confidence">Nivel de confianza<span>Cuán segura dice estar la herramienta.</span></button>
+              <button class="doc" data-evi="human">Revisor responsable<span>Persona asignada para validar la salida.</span></button>
+              <button class="doc" data-evi="history">Historial del cliente<span>Contexto anterior y excepciones.</span></button>
+              <button class="doc" data-evi="why">Explicación de la alerta<span>Variables que influyeron en la clasificación.</span></button>
+            </div>
+            <div class="choiceRow">
+              <button class="danger" id="actBlock" disabled>Bloquear automáticamente</button>
+              <button class="primary" id="actEscalate" disabled>Escalar a revisión humana</button>
+              <button class="ghost" id="actIgnore" disabled>Ignorar la alerta</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Panel de evidencia</h3>
+            <div id="eviReveal" class="brief">Todavía no has inspeccionado ninguna evidencia.</div>
+            <div id="m2Result"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="mission3" class="hidden">
+      <div class="hero">
+        <div class="eyebrow">Misión 3 · El incidente</div>
+        <h2>El piloto se salió del guion.</h2>
+        <p>Se detectó que información sensible fue procesada fuera del entorno previsto. Tu protocolo interno exige una respuesta ordenada. Debes construir la secuencia correcta antes de que venza el tiempo.</p>
+      </div>
+      <div class="content">
+        <div class="grid">
+          <div class="panel">
+            <h3>Ordena la respuesta</h3>
+            <div class="timer" id="timer">Tiempo: <span id="timeLeft">90</span>s</div>
+            <div class="brief"><strong>Protocolo interno del ejercicio:</strong> contener → preservar evidencia → dimensionar alcance → escalar → comunicar → corregir.</div>
+            <p class="note">Haz clic en las acciones en el orden en que deberían ejecutarse.</p>
+            <div class="sequence" id="sequence">
+              <button class="seq" data-seq="communicate">Comunicar a las partes definidas por el protocolo</button>
+              <button class="seq" data-seq="contain">Contener el procesamiento no previsto</button>
+              <button class="seq" data-seq="correct">Corregir controles y prevenir repetición</button>
+              <button class="seq" data-seq="scope">Dimensionar alcance e impacto</button>
+              <button class="seq" data-seq="escalate">Escalar a responsables de decisión</button>
+              <button class="seq" data-seq="preserve">Preservar evidencia y registros</button>
+            </div>
+            <div class="choiceRow">
+              <button class="primary" id="submitSequence" disabled>Confirmar secuencia</button>
+              <button class="ghost" id="resetSequence">Reiniciar orden</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Tu secuencia</h3>
+            <ol id="orderedList"></ol>
+            <div id="m3Result"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="finalScreen" class="hidden">
+      <div class="hero">
+        <div class="eyebrow">Debrief final</div>
+        <h2>Gobernar IA no es “aprobar o prohibir”.</h2>
+        <p>Es construir evidencia, controles, responsables y capacidad de respuesta antes de convertir una promesa tecnológica en una decisión empresarial.</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="bigScore"><span id="finalScore">0</span>/300</div>
+          <div class="meter"><span id="finalMeter"></span></div>
+          <p id="finalText"></p>
+          <div class="debrief">
+            <div class="lesson"><small>Lección 1</small><b>La evidencia precede a la aprobación</b><span>Una promesa de eficiencia no sustituye una validación.</span></div>
+            <div class="lesson"><small>Lección 2</small><b>La IA propone; la gobernanza decide</b><span>Las salidas críticas necesitan trazabilidad y responsabilidad humana.</span></div>
+            <div class="lesson"><small>Lección 3</small><b>El incidente también se gobierna</b><span>La respuesta ordenada reduce improvisación y protege la capacidad de decisión.</span></div>
+          </div>
+          <div class="choiceRow">
+            <button class="secondary" onclick="location.reload()">Jugar nuevamente</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">Autor Sergio Tertusio</div>
+</div>
+
+<div class="modalBack hidden" id="modalBack">
+  <div class="modal">
+    <h3 id="modalTitle">Documento</h3>
+    <p id="modalText"></p>
+    <button class="primary" id="closeModal">Continuar</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const score = {m1:0,m2:0,m3:0};
+  let total = 0;
+  const totalEl = document.getElementById('scoreTotal');
+  const voteApprove = document.getElementById('voteApprove');
+  const votePilot = document.getElementById('votePilot');
+  const voteReject = document.getElementById('voteReject');
+  const actBlock = document.getElementById('actBlock');
+  const actEscalate = document.getElementById('actEscalate');
+  const actIgnore = document.getElementById('actIgnore');
+  const m2Result = document.getElementById('m2Result');
+  const orderedList = document.getElementById('orderedList');
+  const submitSequence = document.getElementById('submitSequence');
+  const resetSequence = document.getElementById('resetSequence');
+  const timer = document.getElementById('timer');
+  const timeLeft = document.getElementById('timeLeft');
+  const mission2 = document.getElementById('mission2');
+  const mission3 = document.getElementById('mission3');
+  const finalScreen = document.getElementById('finalScreen');
+  const step1 = document.getElementById('step1');
+  const step2 = document.getElementById('step2');
+  const step3 = document.getElementById('step3');
+  const finalScore = document.getElementById('finalScore');
+  const finalMeter = document.getElementById('finalMeter');
+  const finalText = document.getElementById('finalText');
+  const modalBack = document.getElementById('modalBack');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalText = document.getElementById('modalText');
+  const closeModal = document.getElementById('closeModal');
+
+  const setScore = (key,val) => {
+    score[key] = val;
+    total = score.m1 + score.m2 + score.m3;
+    totalEl.textContent = total;
+  };
+  const modal = (title,text) => {
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    modalBack.classList.remove('hidden');
+  };
+  closeModal.onclick = () => modalBack.classList.add('hidden');
+
+  // Mission 1
+  const docInfo = {
+    roi:["Caso económico","El 30% de reducción no está respaldado por mediciones del proceso actual ni por un piloto comparable."],
+    data:["Arquitectura de datos","El proveedor confirma procesamiento fuera de Panamá, pero la propuesta no detalla controles, subprocesadores ni criterios de ubicación."],
+    controls:["Supervisión humana","No existe un responsable nominal para validar alertas, corregir errores o detener el uso cuando una salida sea dudosa."],
+    contract:["Contrato comercial","El precio y el alcance están claros, pero el contrato no resuelve los principales vacíos de evidencia y control."],
+    demo:["Video demostrativo","La demostración usa datos preparados y no permite verificar desempeño real, tasas de error ni comportamiento en excepciones."],
+    pilot:["Plan de piloto","La propuesta permite medir reducción real de tiempo, calidad, errores, supervisión humana y condiciones para escalar antes de comprometer la compra total."]
+  };
+  const highValue = new Set(["roi","data","controls","pilot"]);
+  const opened = [];
+  document.querySelectorAll('#docs .doc').forEach(btn=>{
+    btn.onclick=()=>{
+      if(opened.length>=3 || opened.includes(btn.dataset.id)) return;
+      opened.push(btn.dataset.id);
+      btn.classList.add('opened');
+      btn.disabled = true;
+      const [t,x]=docInfo[btn.dataset.id];
+      modal(t,x);
+      if(opened.length===3){
+        document.querySelectorAll('#docs .doc').forEach(b=>b.disabled=true);
+        document.getElementById('voteApprove').disabled=false;
+        document.getElementById('votePilot').disabled=false;
+        document.getElementById('voteReject').disabled=false;
+      }
+    }
+  });
+
+  function finishM1(decision){
+    let s = opened.filter(x=>highValue.has(x)).length * 18; // max 54
+    let label="", cls="", reason="";
+    if(decision==="pilot"){s+=46; label="Decisión robusta"; cls="good"; reason="El piloto condicionado conserva la oportunidad de negocio y, al mismo tiempo, exige evidencia antes de escalar."}
+    if(decision==="reject"){s+=28; label="Decisión prudente, pero incompleta"; cls="warn"; reason="Detenerse puede ser razonable, aunque renuncia a aprender mediante un piloto bien gobernado."}
+    if(decision==="approve"){s+=8; label="Decisión de alto riesgo"; cls="bad"; reason="La compra total se aprueba sin haber cerrado vacíos relevantes de evidencia, datos y supervisión."}
+    s=Math.min(100,s);
+    setScore("m1",s);
+    document.getElementById('m1Result').innerHTML=`<div class="result ${cls}"><h4>${label} · ${s}/100</h4><p>${reason}</p><p><b>Idea clave:</b> la gobernanza no bloquea la innovación; crea condiciones para probarla con evidencia.</p></div>`;
+    ['voteApprove','votePilot','voteReject'].forEach(id=>document.getElementById(id).disabled=true);
+    setTimeout(()=>unlock(2),900);
+  }
+  voteApprove.onclick=()=>finishM1("approve");
+  votePilot.onclick=()=>finishM1("pilot");
+  voteReject.onclick=()=>finishM1("reject");
+
+  // Mission 2
+  const eviInfo = {
+    source:["Fuente del dato","La alerta combina una fuente externa con un registro interno incompleto."],
+    confidence:["Nivel de confianza","La herramienta reporta 61% de confianza. No es una certeza."],
+    human:["Revisor responsable","No hay un revisor nominal asignado para esta categoría de alerta."],
+    history:["Historial del cliente","Dos eventos anteriores fueron aclarados manualmente y resultaron falsos positivos."],
+    why:["Explicación de la alerta","La clasificación depende principalmente de una coincidencia parcial y de datos desactualizados."]
+  };
+  const eOpened=[];
+  document.querySelectorAll('#evidenceButtons .doc').forEach(btn=>{
+    btn.onclick=()=>{
+      if(eOpened.includes(btn.dataset.evi)) return;
+      eOpened.push(btn.dataset.evi);
+      btn.classList.add('opened');
+      const [t,x]=eviInfo[btn.dataset.evi];
+      document.getElementById('eviReveal').innerHTML=`<strong>${t}</strong><br>${x}`;
+      if(eOpened.length>=3){
+        actBlock.disabled=false;actEscalate.disabled=false;actIgnore.disabled=false;
+      }
+    }
+  });
+  function finishM2(action){
+    let s = Math.min(45,eOpened.length*9);
+    let cls,label,reason;
+    if(action==="escalate"){s+=55;cls="good";label="Supervisión responsable";reason="Escalas la alerta para validación humana porque la evidencia no justifica automatizar una consecuencia crítica."}
+    if(action==="block"){s+=12;cls="bad";label="Automatización excesiva";reason="Conviertes una señal imperfecta en una decisión sin suficiente validación."}
+    if(action==="ignore"){s+=20;cls="warn";label="Riesgo no gestionado";reason="Descartar la alerta sin validarla también elimina una señal que podría resultar relevante."}
+    s=Math.min(100,s); setScore("m2",s);
+    m2Result.innerHTML=`<div class="result ${cls}"><h4>${label} · ${s}/100</h4><p>${reason}</p><p><b>Idea clave:</b> una salida de IA es evidencia para decidir, no una autoridad que reemplaza la responsabilidad humana.</p></div>`;
+    actBlock.disabled=actEscalate.disabled=actIgnore.disabled=true;
+    setTimeout(()=>unlock(3),900);
+  }
+  actBlock.onclick=()=>finishM2("block");
+  actEscalate.onclick=()=>finishM2("escalate");
+  actIgnore.onclick=()=>finishM2("ignore");
+
+  // Mission 3
+  let timerId=null;
+  let left=90;
+  let chosen=[];
+  const labels={
+    contain:"Contener el procesamiento no previsto",
+    preserve:"Preservar evidencia y registros",
+    scope:"Dimensionar alcance e impacto",
+    escalate:"Escalar a responsables de decisión",
+    communicate:"Comunicar a las partes definidas por el protocolo",
+    correct:"Corregir controles y prevenir repetición"
+  };
+  const correct=["contain","preserve","scope","escalate","communicate","correct"];
+  document.querySelectorAll('.seq').forEach(btn=>{
+    btn.onclick=()=>{
+      if(chosen.includes(btn.dataset.seq)) return;
+      chosen.push(btn.dataset.seq);
+      btn.classList.add('selected');
+      btn.disabled=true;
+      renderOrder();
+      submitSequence.disabled=chosen.length!==6;
+    }
+  });
+  function renderOrder(){
+    orderedList.innerHTML=chosen.map(x=>`<li>${labels[x]}</li>`).join('');
+  }
+  resetSequence.onclick=()=>{
+    chosen=[];
+    document.querySelectorAll('.seq').forEach(b=>{b.disabled=false;b.classList.remove('selected')});
+    renderOrder(); submitSequence.disabled=true;
+  };
+  function startTimer(){
+    clearInterval(timerId);
+    left=90;timeLeft.textContent=left;
+    timerId=setInterval(()=>{
+      left--;timeLeft.textContent=left;
+      if(left<=20) timer.classList.add('hot');
+      if(left<=0){
+        clearInterval(timerId);
+        finishM3(true);
+      }
+    },1000);
+  }
+  function finishM3(timeout=false){
+    clearInterval(timerId);
+    let positional=0;
+    for(let i=0;i<correct.length;i++) if(chosen[i]===correct[i]) positional++;
+    let s;
+    if (positional === 6 && !timeout) {
+      s = 100;
+    } else if (timeout) {
+      s = Math.min(45, positional * 7);
+    } else {
+      const baseByCorrectPositions = [0, 15, 30, 50, 70, 85, 100];
+      s = baseByCorrectPositions[positional];
+    }
+    let cls=s>=80?"good":s>=55?"warn":"bad";
+    let label=s>=80?"Respuesta bien gobernada":s>=55?"Respuesta parcialmente ordenada":"Respuesta desorganizada";
+    setScore("m3",s);
+    m3Result.innerHTML=`<div class="result ${cls}">
+      <h4>${label} · ${s}/100</h4>
+      <p>${timeout?"El tiempo se agotó. ":""}La calidad de una respuesta no depende solo de hacer cosas correctas, sino también de ejecutarlas en una secuencia coherente. Si los seis pasos están exactamente en el orden esperado, la puntuación es 100/100, sin penalización por tiempo.</p>
+      <p><b>Secuencia esperada del ejercicio:</b> contener → preservar evidencia → dimensionar → escalar → comunicar → corregir.</p>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(10,31,68,.12)">
+        <h4 style="margin-bottom:12px">¿Por qué este orden?</h4>
+
+        <p><b>1. Contener el procesamiento no previsto.</b><br>
+        Lo primero es detener o limitar la situación que puede seguir generando exposición, errores o consecuencias adicionales. Antes de analizar en profundidad, hay que evitar que el problema continúe creciendo.</p>
+
+        <p><b>2. Preservar evidencia y registros.</b><br>
+        Una vez contenido el incidente, deben conservarse logs, registros, configuraciones, mensajes y demás evidencias relevantes. Si se modifican o eliminan antes de investigarlas, puede perderse información clave para comprender qué ocurrió.</p>
+
+        <p><b>3. Dimensionar el alcance y el impacto.</b><br>
+        Con la situación contenida y la evidencia protegida, corresponde determinar qué datos, procesos, personas, sistemas o decisiones pudieron verse afectados. No se debe comunicar ni escalar sobre supuestos cuando todavía puede precisarse el alcance.</p>
+
+        <p><b>4. Escalar a los responsables de decisión.</b><br>
+        Con información inicial suficientemente confiable, se informa a quienes tienen autoridad para decidir: responsables del negocio, tecnología, cumplimiento, riesgos, jurídico u otros definidos por la organización.</p>
+
+        <p><b>5. Comunicar según el protocolo.</b><br>
+        La comunicación debe hacerse con información verificada, al público correcto y por los canales previstos. Comunicar demasiado pronto puede generar confusión; hacerlo demasiado tarde puede agravar el riesgo.</p>
+
+        <p><b>6. Corregir controles y prevenir repetición.</b><br>
+        Finalmente, no alcanza con cerrar el incidente. Deben corregirse las causas, revisar controles, responsabilidades, configuraciones, contratos o procesos y documentar las lecciones aprendidas.</p>
+
+        <p><b>Idea clave:</b> la respuesta a un incidente de IA también es un proceso de gobernanza. El orden ayuda a reducir improvisación, preservar evidencia y tomar decisiones con mejor información.</p>
+      </div>
+    </div>`;
+    document.querySelectorAll('.seq').forEach(b=>b.disabled=true);
+    submitSequence.disabled=true;resetSequence.disabled=true;
+    setTimeout(showFinal,1100);
+  }
+  submitSequence.onclick=()=>finishM3(false);
+
+  function unlock(n){
+    document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
+    if(n===2){
+      mission2.classList.remove('hidden');
+      step1.classList.add('done');step1.classList.remove('active');
+      step2.classList.remove('locked');step2.classList.add('active');
+    }else{
+      mission3.classList.remove('hidden');
+      step2.classList.add('done');step2.classList.remove('active');
+      step3.classList.remove('locked');step3.classList.add('active');
+      startTimer();
+    }
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function showFinal(){
+    document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
+    finalScreen.classList.remove('hidden');
+    step3.classList.add('done');step3.classList.remove('active');
+    finalScore.textContent=total;
+    finalMeter.style.width=(total/3)+"%";
+    finalText.textContent = total>=250
+      ? "Tu desempeño muestra una lógica sólida de gobierno: pedir evidencia, mantener supervisión humana y responder con orden."
+      : total>=190
+      ? "Tu desempeño es consistente, pero todavía hay decisiones donde conviene separar mejor promesa, evidencia y control."
+      : "El simulador detecta oportunidades de mejora en priorización de evidencia, supervisión humana y respuesta a incidentes.";
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+})();
+</script>
+</body>
+</html>
